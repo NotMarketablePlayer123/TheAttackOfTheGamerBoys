@@ -8,7 +8,7 @@ import sys
 pygame.init()
 WIDTH, HEIGHT = 800, 600
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Gamer Boy vs The Haters")
+pygame.display.set_caption("The Attack Of The Gamer Boys")
 
 # Colors
 WHITE = (255, 255, 255)
@@ -217,7 +217,7 @@ def display_leaderboard(leaderboard):
 def main_menu():
     while True:
         WIN.fill(BG)
-        title = font.render("Gamer Boy vs The Haters", True, WHITE)
+        title = font.render("The Attack Of The Gamer Boys", True, WHITE)
         WIN.blit(title, (WIDTH // 2 - title.get_width() // 2, 50))
 
         start_button = pygame.Rect(WIDTH // 2 - 100, 150, 200, 50)
@@ -359,7 +359,7 @@ def about_menu():
     while in_about:
         WIN.fill(BG)
         about_lines = [
-            "Gamer Boy vs The Haters",
+            "The Attack Of The Gamer Boys",
             "Version 1.0",
             "A fun Pygame project.",
             "Press ESC to return."
