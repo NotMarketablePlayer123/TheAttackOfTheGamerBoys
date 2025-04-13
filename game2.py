@@ -1,10 +1,10 @@
 import pygame
 import random
+import sys
 
-# Global leaderboard will persist until the game is closed.
-leaderboard = []
-
-# Init
+# ---------------------------
+# Initialize Pygame and Globals
+# ---------------------------
 pygame.init()
 WIDTH, HEIGHT = 800, 600
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -15,47 +15,51 @@ WHITE = (255, 255, 255)
 RED   = (255, 0, 0)
 BG    = (30, 30, 30)
 
-# Clock
+# Clock & FPS
 FPS = 60
 
-# Load Images from sprites folder
+# Global setting to enable the N key to spawn a nuke powerup.
+enable_nuke_key = False
+
+# Global leaderboard (persists until the game is closed)
+leaderboard = []
+
+# ---------------------------
+# Load Images and Fonts
+# ---------------------------
 player_img = pygame.image.load("sprites/player.png").convert_alpha()
 player_img = pygame.transform.scale(player_img, (50, 50))
 
-# Increase controller size: originally (10, 5), now 4x -> (40, 20)
 controller_img = pygame.image.load("sprites/contoler.png").convert_alpha()
 controller_img = pygame.transform.scale(controller_img, (40, 20))
 
 enemy_img = pygame.image.load("sprites/enemy.png").convert_alpha()
 enemy_img = pygame.transform.scale(enemy_img, (40, 40))
 
-# Increase ps5_controller size to 4x: originally (12, 6), now (48, 24)
 ps5_controller = pygame.image.load("sprites/ps5_controller.png").convert_alpha()
 ps5_controller = pygame.transform.scale(ps5_controller, (48, 24))
 
 special_controller = pygame.image.load("sprites/special_controller.png").convert_alpha()
-special_controller = pygame.transform.scale(special_controller, (30, 15))  # Increased to 3x its previous size
+special_controller = pygame.transform.scale(special_controller, (30, 15))  # increased to 3x
 
-# Replace the nuke image with the new image.
 nuke_img = pygame.image.load("sprites/nuke.png").convert_alpha()
 nuke_img = pygame.transform.scale(nuke_img, (20, 20))
 
-# Load skells image.
 skells_img = pygame.image.load("sprites/skells.png").convert_alpha()
 skells_img = pygame.transform.scale(skells_img, (40, 40))
 
-# Fonts
 font = pygame.font.SysFont("Arial", 20)
 
-
-# FloatingText class to display fading numbers (for enemy HP).
+# ---------------------------
+# Game Classes
+# ---------------------------
 class FloatingText:
     def __init__(self, x, y, text, color, lifetime=60):
         self.x = x
         self.y = y
         self.text = text
         self.color = color
-        self.lifetime = lifetime  # lifetime in frames
+        self.lifetime = lifetime  # in frames
         self.counter = 0
         self.alpha = 255
         self.image = font.render(text, True, color)
@@ -65,7 +69,7 @@ class FloatingText:
         self.counter += 1
         self.alpha = max(0, 255 - int((255 / self.lifetime) * self.counter))
         self.image.set_alpha(self.alpha)
-        self.y -= 0.5  # float upward slowly
+        self.y -= 0.5  # slowly float upward
 
     def draw(self):
         WIN.blit(self.image, (self.x, self.y))
@@ -76,7 +80,6 @@ class Player:
         self.x = WIDTH // 2
         self.y = HEIGHT - 60
         self.speed = 5
-        # Powerup timers stored in frames; 600 frames = ~10 sec.
         self.powerups = {"ps5": 0, "special": 0, "nuke": 0}
 
     def draw(self):
@@ -124,12 +127,11 @@ class Enemy:
         WIN.blit(enemy_img, (self.x, self.y))
 
 
-# New enemy type "Skells"
 class Skells:
     def __init__(self):
         self.x = random.randint(0, WIDTH - 40)
         self.y = -40
-        self.hp = 5  # Takes 5 hits.
+        self.hp = 5  # takes 5 hits
         self.rect = skells_img.get_rect(topleft=(self.x, self.y))
 
     def move(self):
@@ -141,11 +143,9 @@ class Skells:
 
 
 def spawn_powerup():
-    r = random.randint(1, 40)
-    if r == 1:
-        choice = "nuke"
-    else:
-        choice = random.choice(["ps5", "special"])
+    # Regular powerup spawner: 1 in 15 chance to be a nuke; otherwise randomly ps5 or special.
+    r = random.randint(1, 15)
+    choice = "nuke" if r == 1 else random.choice(["ps5", "special"])
     x = random.randint(0, WIDTH - 20)
     return {"type": choice, "rect": pygame.Rect(x, 0, 20, 20)}
 
@@ -160,12 +160,10 @@ def draw_powerup(powerup):
 
 
 def display_leaderboard(leaderboard):
-    # Sort scores in descending order.
     sorted_scores = sorted(leaderboard, reverse=True)
     running = True
     restart_requested = False
 
-    # Define buttons.
     restart_button = pygame.Rect(WIDTH // 2 - 120, HEIGHT - 150, 100, 40)
     exit_button = pygame.Rect(WIDTH // 2 + 20, HEIGHT - 150, 100, 40)
 
@@ -174,18 +172,15 @@ def display_leaderboard(leaderboard):
         title_text = font.render("Leaderboard", True, WHITE)
         WIN.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, 50))
 
-        # Display each score.
         for i, score in enumerate(sorted_scores):
             entry_text = font.render(f"{i + 1}. {score}", True, WHITE)
             WIN.blit(entry_text, (WIDTH // 2 - entry_text.get_width() // 2, 100 + i * 30))
 
-        # Draw Restart button.
         pygame.draw.rect(WIN, WHITE, restart_button)
         restart_text = font.render("Restart", True, BG)
         WIN.blit(restart_text, (restart_button.centerx - restart_text.get_width() // 2,
                                 restart_button.centery - restart_text.get_height() // 2))
 
-        # Draw Exit button.
         pygame.draw.rect(WIN, WHITE, exit_button)
         exit_text = font.render("Exit", True, BG)
         WIN.blit(exit_text, (exit_button.centerx - exit_text.get_width() // 2,
@@ -197,8 +192,8 @@ def display_leaderboard(leaderboard):
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
-                break
+                pygame.quit()
+                sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if restart_button.collidepoint(event.pos):
                     restart_requested = True
@@ -213,48 +208,238 @@ def display_leaderboard(leaderboard):
                     restart_requested = True
                     running = False
                     break
-        # End event loop
 
     return restart_requested
 
+# ---------------------------
+# Menu Functions
+# ---------------------------
+def main_menu():
+    while True:
+        WIN.fill(BG)
+        title = font.render("Gamer Boy vs The Haters", True, WHITE)
+        WIN.blit(title, (WIDTH // 2 - title.get_width() // 2, 50))
 
-def main():
+        start_button = pygame.Rect(WIDTH // 2 - 100, 150, 200, 50)
+        settings_button = pygame.Rect(WIDTH // 2 - 100, 220, 200, 50)
+        about_button = pygame.Rect(WIDTH // 2 - 100, 290, 200, 50)
+        exit_button = pygame.Rect(WIDTH // 2 - 100, 360, 200, 50)
+
+        pygame.draw.rect(WIN, WHITE, start_button)
+        pygame.draw.rect(WIN, WHITE, settings_button)
+        pygame.draw.rect(WIN, WHITE, about_button)
+        pygame.draw.rect(WIN, WHITE, exit_button)
+
+        txt_start = font.render("Start Game", True, BG)
+        txt_settings = font.render("Settings", True, BG)
+        txt_about = font.render("About", True, BG)
+        txt_exit = font.render("Exit", True, BG)
+
+        WIN.blit(txt_start, (start_button.centerx - txt_start.get_width() // 2,
+                              start_button.centery - txt_start.get_height() // 2))
+        WIN.blit(txt_settings, (settings_button.centerx - txt_settings.get_width() // 2,
+                                 settings_button.centery - txt_settings.get_height() // 2))
+        WIN.blit(txt_about, (about_button.centerx - txt_about.get_width() // 2,
+                              about_button.centery - txt_about.get_height() // 2))
+        WIN.blit(txt_exit, (exit_button.centerx - txt_exit.get_width() // 2,
+                             exit_button.centery - txt_exit.get_height() // 2))
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if start_button.collidepoint(event.pos):
+                    return "Start Game"
+                elif settings_button.collidepoint(event.pos):
+                    settings_menu()
+                elif about_button.collidepoint(event.pos):
+                    about_menu()
+                elif exit_button.collidepoint(event.pos):
+                    pygame.quit()
+                    sys.exit()
+
+
+def pause_menu():
+    paused = True
+    while paused:
+        # Draw a translucent overlay.
+        overlay = pygame.Surface((WIDTH, HEIGHT))
+        overlay.set_alpha(180)
+        overlay.fill(BG)
+        WIN.blit(overlay, (0, 0))
+
+        resume_button = pygame.Rect(WIDTH // 2 - 100, 150, 200, 50)
+        settings_button = pygame.Rect(WIDTH // 2 - 100, 220, 200, 50)
+        about_button = pygame.Rect(WIDTH // 2 - 100, 290, 200, 50)
+        exit_button = pygame.Rect(WIDTH // 2 - 100, 360, 200, 50)
+
+        pygame.draw.rect(WIN, WHITE, resume_button)
+        pygame.draw.rect(WIN, WHITE, settings_button)
+        pygame.draw.rect(WIN, WHITE, about_button)
+        pygame.draw.rect(WIN, WHITE, exit_button)
+
+        txt_resume = font.render("Resume", True, BG)
+        txt_settings = font.render("Settings", True, BG)
+        txt_about = font.render("About", True, BG)
+        txt_exit = font.render("Exit", True, BG)
+
+        WIN.blit(txt_resume, (resume_button.centerx - txt_resume.get_width() // 2,
+                              resume_button.centery - txt_resume.get_height() // 2))
+        WIN.blit(txt_settings, (settings_button.centerx - txt_settings.get_width() // 2,
+                                 settings_button.centery - txt_settings.get_height() // 2))
+        WIN.blit(txt_about, (about_button.centerx - txt_about.get_width() // 2,
+                              about_button.centery - txt_about.get_height() // 2))
+        WIN.blit(txt_exit, (exit_button.centerx - txt_exit.get_width() // 2,
+                             exit_button.centery - txt_exit.get_height() // 2))
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return "Resume"
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if resume_button.collidepoint(event.pos):
+                    return "Resume"
+                elif settings_button.collidepoint(event.pos):
+                    settings_menu()
+                elif about_button.collidepoint(event.pos):
+                    about_menu()
+                elif exit_button.collidepoint(event.pos):
+                    return "Exit"
+
+
+def settings_menu():
+    global enable_nuke_key
+    in_settings = True
+    checkbox_rect = pygame.Rect(WIDTH // 2 - 50, 200, 20, 20)
+    back_button = pygame.Rect(WIDTH // 2 - 100, 300, 200, 50)
+    while in_settings:
+        WIN.fill(BG)
+        title_text = font.render("Settings", True, WHITE)
+        WIN.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, 100))
+
+        # Draw the checkbox and label.
+        pygame.draw.rect(WIN, WHITE, checkbox_rect, 2)
+        if enable_nuke_key:
+            pygame.draw.line(WIN, WHITE, (checkbox_rect.left, checkbox_rect.top),
+                             (checkbox_rect.right, checkbox_rect.bottom), 2)
+            pygame.draw.line(WIN, WHITE, (checkbox_rect.left, checkbox_rect.bottom),
+                             (checkbox_rect.right, checkbox_rect.top), 2)
+        label = font.render("Enable Nuke (press N to spawn)", True, WHITE)
+        WIN.blit(label, (checkbox_rect.right + 10, checkbox_rect.top))
+
+        pygame.draw.rect(WIN, WHITE, back_button)
+        back_text = font.render("Back", True, BG)
+        WIN.blit(back_text, (back_button.centerx - back_text.get_width() // 2,
+                             back_button.centery - back_text.get_height() // 2))
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if checkbox_rect.collidepoint(event.pos):
+                    enable_nuke_key = not enable_nuke_key
+                elif back_button.collidepoint(event.pos):
+                    in_settings = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    in_settings = False
+
+
+def about_menu():
+    in_about = True
+    back_button = pygame.Rect(WIDTH // 2 - 100, 400, 200, 50)
+    while in_about:
+        WIN.fill(BG)
+        about_lines = [
+            "Gamer Boy vs The Haters",
+            "Version 1.0",
+            "A fun Pygame project.",
+            "Press ESC to return."
+        ]
+        start_y = 150
+        for line in about_lines:
+            text = font.render(line, True, WHITE)
+            WIN.blit(text, (WIDTH // 2 - text.get_width() // 2, start_y))
+            start_y += 40
+        pygame.draw.rect(WIN, WHITE, back_button)
+        back_text = font.render("Back", True, BG)
+        WIN.blit(back_text, (back_button.centerx - back_text.get_width() // 2,
+                             back_button.centery - back_text.get_height() // 2))
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if back_button.collidepoint(event.pos):
+                    in_about = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    in_about = False
+
+# ---------------------------
+# Main Game Loop ("run_game")
+# ---------------------------
+def run_game():
     run = True
     clock = pygame.time.Clock()
     player = Player()
     controllers = []
     enemies = []
     powerups = []
-    floating_texts = []  # List for FloatingText instances.
+    floating_texts = []
     score = 0
 
     shoot_cooldown = 0
-    spawn_timer = 0       # Spawns occur every 30 frames (~0.5 sec).
-    powerup_timer = 0     # Powerups spawn every 600 frames (~10 sec).
-    escalation_timer = 0  # Timer to increase enemy spawn count.
-    enemy_spawn_count = 1 # Starting spawn count.
+    spawn_timer = 0       # spawn enemies every 30 frames (~0.5 sec)
+    powerup_timer = 0     # spawn powerups every 600 frames (~10 sec)
+    escalation_timer = 0  # increases enemy spawn count over time
+    enemy_spawn_count = 1
 
-    player_hits = 0       # Number of collisions between player and enemies.
+    player_hits = 0
     game_over = False
 
     while run:
         clock.tick(FPS)
-        WIN.fill(BG)
+        # Process events, including pause (Esc) and N key for spawning nuke powerup.
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    choice = pause_menu()
+                    if choice == "Exit":
+                        run = False
+                        break
+                # Instead of immediately nuking enemies, N spawns a nuke powerup to pick-up.
+                elif event.key == pygame.K_n and enable_nuke_key:
+                    x = random.randint(0, WIDTH - 20)
+                    new_nuke = {"type": "nuke", "rect": pygame.Rect(x, 0, 20, 20)}
+                    powerups.append(new_nuke)
+
         keys = pygame.key.get_pressed()
         player.move(keys)
 
-        shoot_cooldown -= 1
+        shoot_cooldown = max(shoot_cooldown - 1, -999)
         spawn_timer += 1
         powerup_timer += 1
         escalation_timer += 1
 
-        # Decrement active powerup timers if active.
         if player.powerups["ps5"] > 0:
             player.powerups["ps5"] -= 1
         if player.powerups["special"] > 0:
             player.powerups["special"] -= 1
 
-        # Increase enemy spawn count every 30 seconds (1800 frames).
         if escalation_timer >= 1800:
             enemy_spawn_count += 3
             escalation_timer = 0
@@ -265,7 +450,6 @@ def main():
             img = controller_img
             count = 1
             controller_type = "normal"
-
             if player.powerups["ps5"] > 0:
                 damage = 3
                 img = ps5_controller
@@ -278,45 +462,39 @@ def main():
                 controllers.append(Controller(player.x + 20 + offset, player.y, damage, img, controller_type))
             shoot_cooldown = 15
 
-        # Spawn enemies every 30 frames (~0.5 sec).
+        # Spawn enemies every 30 frames.
         if spawn_timer >= 30:
             for _ in range(enemy_spawn_count):
-                # 1 in 5 chance to spawn a Skells enemy.
                 if random.randint(1, 5) == 1:
                     enemies.append(Skells())
                 else:
                     enemies.append(Enemy())
             spawn_timer = 0
 
-        # Spawn powerups every 600 frames (~10 sec).
+        # Spawn regular powerups every 600 frames.
         if powerup_timer >= 600:
             powerups.append(spawn_powerup())
             powerup_timer = 0
 
-        # Update and draw controllers.
+        # Update controllers.
         for c in controllers[:]:
             c.move()
-            c.draw()
             if c.y < -10:
                 controllers.remove(c)
 
-        # Update and draw enemies.
+        # Update enemies.
         for e in enemies[:]:
             e.move()
-            e.draw()
             if e.y > HEIGHT:
                 enemies.remove(e)
 
-        # Temporary counters for scoring this frame.
+        # Handle collisions: controllers vs. enemies.
         special_kills_this_frame = 0
         normal_kills_this_frame = 0
-
-        # Collision detection: controllers vs. enemies.
         for c in controllers[:]:
             for e in enemies[:]:
                 if c.rect.colliderect(e.rect):
                     e.hp -= c.damage
-                    # Create floating text with remaining HP.
                     floating_texts.append(FloatingText(e.x, e.y, str(e.hp), RED, lifetime=60))
                     if e.hp <= 0:
                         if c.controller_type == "special":
@@ -328,7 +506,6 @@ def main():
                         controllers.remove(c)
                     break
 
-        # Award points.
         frame_points = (normal_kills_this_frame * 15 +
                         (special_kills_this_frame // 2) * 25 +
                         (special_kills_this_frame % 2) * 15)
@@ -343,40 +520,35 @@ def main():
                     game_over = True
                     break
 
-        # Update and draw floating texts.
+        # Update floating texts.
         for ft in floating_texts[:]:
             ft.update()
-            ft.draw()
             if ft.alpha <= 0:
                 floating_texts.remove(ft)
 
-        # Game over: update leaderboard and show the leaderboard screen with buttons.
-        if game_over:
-            leaderboard.append(score)
-            restart = display_leaderboard(leaderboard)
-            if restart:
-                main()  # Restart the game.
-                return
-            else:
-                run = False
-                break
-
-        # Powerup collision detection.
+        # Collision detection: player picks up powerups.
         for p in powerups[:]:
             p["rect"].y += 3
-            draw_powerup(p)
-            if p["rect"].colliderect(pygame.Rect(player.x, player.y, 50, 50)):
+            if p["rect"].colliderect(player.get_rect()):
                 if p["type"] == "nuke":
                     enemies.clear()
                 else:
-                    # Activate powerup for 600 frames (≈10 seconds).
                     player.powerups[p["type"]] = 600
                 powerups.remove(p)
 
-        # Draw player.
+        # Draw game elements.
+        WIN.fill(BG)
+        for c in controllers:
+            c.draw()
+        for e in enemies:
+            e.draw()
+        for p in powerups:
+            draw_powerup(p)
         player.draw()
+        for ft in floating_texts:
+            ft.draw()
 
-        # UI: Display instructions, score, hit count, and powerup countdowns.
+        # Draw UI information.
         txt_instructions = font.render("Press SPACE to throw controllers!", True, WHITE)
         WIN.blit(txt_instructions, (10, 10))
         txt_score = font.render(f"Score: {score}", True, WHITE)
@@ -394,12 +566,23 @@ def main():
 
         pygame.display.update()
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+        if game_over:
+            leaderboard.append(score)
+            restart = display_leaderboard(leaderboard)
+            if restart:
+                run_game()  # restart the game
+                return
+            else:
                 run = False
 
-    pygame.quit()
-
+# ---------------------------
+# Main Function / State Machine
+# ---------------------------
+def main():
+    while True:
+        option = main_menu()
+        if option == "Start Game":
+            run_game()
 
 if __name__ == "__main__":
     main()
